@@ -92,6 +92,5 @@ To run this project locally, follow these steps:
 
 This project provides a solid foundation that can be extended with many exciting features:
 - **Scheduled Meetings:** Allow teachers to schedule video classes in advance, which then appear on a calendar for students.
-- **Assignments & Submissions:** A system for teachers to post assignments and for students to submit their work.
 - **Recording Meetings:** Integrate a server-side recording feature for video sessions.
 - **Private Messaging:** Allow direct, one-to-one messaging between users within a classroom.
