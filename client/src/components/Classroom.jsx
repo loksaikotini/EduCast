@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import io from 'socket.io-client';
 import { FiDownload, FiSend, FiPaperclip, FiUsers, FiMessageSquare, FiUploadCloud, FiArrowLeft, FiVideo } from 'react-icons/fi';
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 export default function Classroom() {
   const { code } = useParams();
