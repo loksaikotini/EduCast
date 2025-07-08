@@ -1,8 +1,8 @@
 # EduCast: The All-in-One Virtual Classroom Platform
 
 <div align="center">
-  <!-- You can replace this with a real screenshot of your app's dashboard -->
-  <img src="path/to/your/screenshot.png" alt="EduCast Dashboard Screenshot" width="800"/>
+ 
+  <img src="" alt="EduCast Dashboard Screenshot" width="800"/>
 </div>
 
 <br/>
