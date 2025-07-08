@@ -8,7 +8,6 @@ import VideoGrid from './meeting/VideoGrid';
 import Sidebar from './meeting/Sidebar';
 import ControlBar from './meeting/ControlBar';
 import { Whiteboard } from './meeting/Whiteboard';
-import Video from './meeting/Video';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
@@ -30,7 +29,6 @@ export default function Meeting() {
   const [copiedIndicator, setCopiedIndicator] = useState('');
   const [error, setError] = useState('');
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
-  const [pinnedPeerId, setPinnedPeerId] = useState(null);
 
   const userVideo = useRef();
   const peersRef = useRef([]);
@@ -88,20 +86,13 @@ export default function Meeting() {
     socketRef.current.on('user-hand-raised', ({ userId, raised, name }) => updateParticipant({ id: userId, handRaised: raised, name: name }));
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
       peersRef.current.forEach(p => p.peer?.destroy());
       streamRef.current?.getTracks().forEach(track => track.stop());
     };
   }, [code, navigate, updateParticipant, user, token]);
-
-  const getGridCols = (count) => {
-    if (count <= 1) return 'grid-cols-1';
-    if (count === 2) return 'grid-cols-1 md:grid-cols-2';
-    if (count <= 4) return 'grid-cols-2';
-    if (count <= 6) return 'grid-cols-2 md:grid-cols-3';
-    if (count <= 9) return 'grid-cols-3';
-    return 'grid-cols-3 md:grid-cols-4';
-  };
 
   function createPeer(userToSignal, callerID, currentStream) { if (!currentStream) { console.error("createPeer: No stream available"); return null; } const peer = new Peer({ initiator: true, trickle: false, stream: currentStream }); peer.on('signal', signal => socketRef.current.emit('sending-offer', { userToSignal, callerID, signal })); peer.on('error', err => console.error('Peer creation error for ' + userToSignal, err)); return peer; }
   function addPeer(incomingSignal, callerID, currentStream) { if (!currentStream) { console.error("addPeer: No stream available"); return null; } if (!incomingSignal) { console.error("addPeer: No incoming signal for " + callerID); return null; } const peer = new Peer({ initiator: false, trickle: false, stream: currentStream }); peer.on('signal', signal => socketRef.current.emit('sending-answer', { signal, callerID })); peer.signal(incomingSignal); peer.on('error', err => console.error('Peer addition error for ' + callerID, err)); return peer; }
@@ -116,13 +107,6 @@ export default function Meeting() {
   const toggleHandRaise = () => { if(!socketRef.current?.connected || !user) return; const nHandRaised = !handRaised; setHandRaised(nHandRaised); socketRef.current.emit('hand-raise', code, { raised: nHandRaised }); updateParticipant({ id: socketRef.current.id, handRaised: nHandRaised, name: user.name }); };
   const handleShare = async (type) => { let textToCopy = type === 'code' ? code : window.location.href; let successMessage = type === 'code' ? 'Code Copied!' : 'Link Copied!'; try { await navigator.clipboard.writeText(textToCopy); setCopiedIndicator(successMessage); } catch (err) { console.error('Failed to copy: ', err); setCopiedIndicator('Copy failed!'); } setTimeout(() => setCopiedIndicator(''), 2000); };
   
-  const handlePin = (peerIdToPin) => {
-    setPinnedPeerId(currentId => (currentId === peerIdToPin ? null : peerIdToPin));
-  };
-
-  const pinnedPeer = pinnedPeerId ? peers.find(p => peersRef.current.find(ref => ref.peer === p)?.peerID === pinnedPeerId) : null;
-  const otherPeers = peers.filter(p => peersRef.current.find(ref => ref.peer === p)?.peerID !== pinnedPeerId);
-
   if (error) {
     return (
       <div className="min-h-screen bg-[#202124] text-white flex flex-col items-center justify-center p-4">
@@ -134,46 +118,12 @@ export default function Meeting() {
 
   return (
     <div className="min-h-screen bg-[#202124] text-white flex flex-col select-none">
-      {isWhiteboardOpen && socketRef.current && (<Whiteboard socket={socketRef.current} roomCode={code} />)}
+       {isWhiteboardOpen && socketRef.current && (<Whiteboard socket={socketRef.current} roomCode={code} />)}
       <MeetingHeader code={code} onLeave={leaveMeeting} onShare={handleShare} copiedIndicator={copiedIndicator} />
-      
-      <main className="flex flex-1 overflow-hidden">
-        {pinnedPeerId ? (
-          <div className="flex flex-1 p-4 gap-4 min-w-0">
-            <div className="flex-1 flex items-center justify-center">
-              {pinnedPeer && (
-                <Video
-                  key={pinnedPeerId}
-                  peer={pinnedPeer}
-                  peerId={pinnedPeerId}
-                  onPin={handlePin}
-                  isPinned={true}
-                />
-              )}
-            </div>
-            <div className="w-48 flex-shrink-0 flex flex-col gap-4 overflow-y-auto">
-              <Video ref={userVideo} isLocal={true} videoOff={videoOff && !screenSharing} muted={true} />
-              {otherPeers.map((peer) => {
-                const pRef = peersRef.current.find(p => p.peer === peer);
-                return <Video key={pRef?.peerID} peer={peer} peerId={pRef?.peerID} onPin={handlePin} isPinned={false} />;
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center p-4 min-w-0">
-            <div className={`grid gap-4 w-full h-full ${getGridCols(peers.length + 1)}`}>
-              <Video ref={userVideo} isLocal={true} videoOff={videoOff && !screenSharing} muted={true} />
-              {peers.map((peer) => {
-                const pRef = peersRef.current.find(p => p.peer === peer);
-                return <Video key={pRef?.peerID} peer={peer} peerId={pRef?.peerID} onPin={handlePin} isPinned={false} />;
-              })}
-            </div>
-          </div>
-        )}
-        
+      <main className="flex flex-grow overflow-hidden">
+        <VideoGrid userVideoRef={userVideo} peers={peers} peersRef={peersRef} localVideoState={{ videoOff, screenSharing }} />
         <Sidebar chatOpen={chatOpen} participantsOpen={participantsOpen} setChatOpen={setChatOpen} setParticipantsOpen={setParticipantsOpen} messages={messages} messageInput={messageInput} onMessageChange={(e) => setMessageInput(e.target.value)} onSendMessage={sendMessage} localSocketId={socketRef.current?.id} participants={participants} />
       </main>
-      
       <ControlBar onToggleMute={toggleMute} muted={muted} onToggleVideo={toggleVideo} videoOff={videoOff} onToggleScreenShare={toggleScreenShare} screenSharing={screenSharing} onToggleHandRaise={toggleHandRaise} handRaised={handRaised} onToggleWhiteboard={() => setIsWhiteboardOpen(prev => !prev)} isWhiteboardOpen={isWhiteboardOpen} onToggleChat={() => { setChatOpen(prev => !prev); setParticipantsOpen(false); }} chatOpen={chatOpen} onToggleParticipants={() => { setParticipantsOpen(prev => !prev); setChatOpen(false); }} participantsOpen={participantsOpen} />
     </div>
   );
