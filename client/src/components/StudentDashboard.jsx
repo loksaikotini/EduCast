@@ -9,36 +9,41 @@ export default function StudentDashboard() {
   const [enrolledClassrooms, setEnrolledClassrooms] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [joinLoading, setJoinLoading] = useState(false); 
+  const [joinLoading, setJoinLoading] = useState(false);
+  // NEW: State for success messages
+  const [success, setSuccess] = useState('');
 
   const navigate = useNavigate();
   const { user, logout, fetchWithAuth } = useContext(AuthContext);
+  
+  // NEW: Helper to show a success message and then clear it
+  const showSuccessMessage = (message) => {
+    setSuccess(message);
+    setTimeout(() => setSuccess(''), 3000);
+  };
 
   const fetchEnrolledClassrooms = useCallback(async () => {
     setError('');
     try {
       const res = await fetchWithAuth('/classroom/student/enrolled');
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to fetch enrolled classrooms');
-      }
+      if (!res.ok) throw new Error(data.message || 'Failed to fetch enrolled classrooms');
       setEnrolledClassrooms(data.classrooms || []);
     } catch (err) {
       setError(err.message);
       console.error(err);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   }, [fetchWithAuth]);
 
   useEffect(() => {
-    if (user) {
-      fetchEnrolledClassrooms();
-    }
+    if (user) fetchEnrolledClassrooms();
   }, [user, fetchEnrolledClassrooms]);
 
   const handleJoinVideoClass = async () => {
-    if (!classCode.trim()) return alert('Enter a class code for the video meeting');
+    // REPLACED: alert() with setError()
+    if (!classCode.trim()) return setError('Enter a class code for video meeting');
     setJoinLoading(true);
     setError('');
     try {
@@ -58,16 +63,18 @@ export default function StudentDashboard() {
 
   const handleJoinClassroom = async (e) => {
     e.preventDefault();
-    if (!classroomCodeInput.trim()) return alert('Enter a classroom code to join');
+    // REPLACED: alert() with setError()
+    if (!classroomCodeInput.trim()) return setError('Enter a classroom code to join');
     setError('');
-    setJoinLoading(true); 
+    setJoinLoading(true);
     try {
       const res = await fetchWithAuth(`/classroom/${classroomCodeInput.trim()}/join`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to join classroom');
       setClassroomCodeInput('');
       fetchEnrolledClassrooms();
-      alert(data.message || 'Successfully joined classroom!');
+      // REPLACED: alert() with showSuccessMessage()
+      showSuccessMessage(data.message || 'Successfully joined classroom!');
     } catch (err) {
       setError(err.message);
       console.error(err);
@@ -81,16 +88,17 @@ export default function StudentDashboard() {
     setError('');
     setJoinLoading(true);
     try {
-        const res = await fetchWithAuth(`/classroom/${classroom_code}/leave`, { method: 'POST' });
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.message || "Failed to leave classroom");
-        alert(data.message || "Successfully left classroom");
-        fetchEnrolledClassrooms();
+      const res = await fetchWithAuth(`/classroom/${classroom_code}/leave`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to leave classroom");
+      // REPLACED: alert() with showSuccessMessage()
+      showSuccessMessage(data.message || "Successfully left classroom");
+      fetchEnrolledClassrooms();
     } catch (err) {
-        setError(err.message);
-        console.error(err);
+      setError(err.message);
+      console.error(err);
     } finally {
-        setJoinLoading(false);
+      setJoinLoading(false);
     }
   };
 
@@ -100,32 +108,21 @@ export default function StudentDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-4 md:p-8">
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-2xl md:text-3xl font-bold">Welcome, {user?.name}!</h1>
-        <button
-          onClick={logout}
-          className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow flex items-center"
-        >
+        <button onClick={logout} className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow flex items-center">
           <FiLogOut className="mr-2" /> Logout
         </button>
       </header>
 
+      {/* NEW: Banners for success or error messages */}
       {error && <p className="bg-red-100 text-red-700 p-3 rounded-md mb-4 text-sm">{error}</p>}
+      {success && <p className="bg-green-100 text-green-700 p-3 rounded-md mb-4 text-sm">{success}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-6">
           <section className="bg-white/20 backdrop-blur-md p-6 rounded-xl shadow-lg">
             <h2 className="text-xl font-semibold mb-3 text-indigo-100">Join Live Class (Video)</h2>
-            <input
-              type="text"
-              placeholder="Enter live class code"
-              className="w-full border border-indigo-300 bg-white/80 text-gray-800 p-3 rounded-md mb-3 focus:ring-2 focus:ring-yellow-400"
-              value={classCode}
-              onChange={e => setClassCode(e.target.value.toUpperCase())}
-            />
-            <button
-              onClick={handleJoinVideoClass}
-              disabled={joinLoading}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-bold py-3 rounded-md transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <input type="text" placeholder="Enter live class code" className="w-full border border-indigo-300 bg-white/80 text-gray-800 p-3 rounded-md mb-3 focus:ring-2 focus:ring-yellow-400" value={classCode} onChange={e => setClassCode(e.target.value.toUpperCase())} />
+            <button onClick={handleJoinVideoClass} disabled={joinLoading} className="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-bold py-3 rounded-md transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed">
               {joinLoading ? 'Checking...' : 'Join Live Class'}
             </button>
           </section>
@@ -133,18 +130,8 @@ export default function StudentDashboard() {
           <section className="bg-white/20 backdrop-blur-md p-6 rounded-xl shadow-lg">
             <h2 className="text-xl font-semibold mb-3 text-indigo-100">Join a Classroom</h2>
             <form onSubmit={handleJoinClassroom} className="space-y-3">
-              <input
-                type="text"
-                placeholder="Enter classroom code"
-                className="w-full border border-indigo-300 bg-white/80 text-gray-800 p-3 rounded-md focus:ring-2 focus:ring-green-400"
-                value={classroomCodeInput}
-                onChange={e => setClassroomCodeInput(e.target.value.toUpperCase())}
-              />
-              <button
-                type="submit"
-                disabled={joinLoading}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-md transition duration-150 disabled:opacity-60 flex items-center justify-center"
-              >
+              <input type="text" placeholder="Enter classroom code" className="w-full border border-indigo-300 bg-white/80 text-gray-800 p-3 rounded-md focus:ring-2 focus:ring-green-400" value={classroomCodeInput} onChange={e => setClassroomCodeInput(e.target.value.toUpperCase())} />
+              <button type="submit" disabled={joinLoading} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-md transition duration-150 disabled:opacity-60 flex items-center justify-center">
                 <FiPlusCircle className="mr-2"/> Join Classroom
               </button>
             </form>
@@ -165,19 +152,11 @@ export default function StudentDashboard() {
                   <p className="text-xs text-indigo-300">Code: {room.code} | Teacher: {room.teacher?.name || 'N/A'}</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <Link
-                    to={`/classroom/${room.code}`}
-                    className="bg-indigo-500 hover:bg-indigo-400 text-white font-semibold py-2 px-4 rounded-md transition duration-150 flex items-center text-sm"
-                    >
-                    View <FiArrowRight className="ml-2"/>
+                    <Link to={`/classroom/${room.code}`} className="bg-indigo-500 hover:bg-indigo-400 text-white font-semibold py-2 px-4 rounded-md transition duration-150 flex items-center text-sm">
+                      View <FiArrowRight className="ml-2"/>
                     </Link>
-                    <button
-                        onClick={() => handleLeaveClassroom(room.code)}
-                        title="Leave Classroom"
-                        disabled={joinLoading}
-                        className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-md transition duration-150 disabled:opacity-60"
-                    >
-                        <FiTrash2 size={16}/>
+                    <button onClick={() => handleLeaveClassroom(room.code)} title="Leave Classroom" disabled={joinLoading} className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-md transition duration-150 disabled:opacity-60">
+                      <FiTrash2 size={16}/>
                     </button>
                 </div>
               </div>
