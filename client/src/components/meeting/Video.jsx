@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { FiVideoOff, FiZap } from 'react-icons/fi';
+import { FiVideoOff } from 'react-icons/fi';
 
-const Video = React.forwardRef(({ peer, videoOff = false, isLocal = false, muted = false, peerId, onPin, isPinned }, ref) => {
+const Video = React.forwardRef(({ peer, videoOff = false, isLocal = false, muted = false }, ref) => {
   const internalRef = useRef();
   const videoRef = ref || internalRef;
 
@@ -19,20 +19,8 @@ const Video = React.forwardRef(({ peer, videoOff = false, isLocal = false, muted
   }, [peer, videoRef]);
 
   return (
-    <div className="relative w-full h-full bg-black rounded-lg shadow-md overflow-hidden aspect-video group">
+    <div className="relative w-full h-full bg-black rounded-lg shadow-md overflow-hidden aspect-video">
       <video ref={videoRef} muted={isLocal || muted} autoPlay playsInline className={`w-full h-full object-cover transition-opacity duration-300 ${videoOff && isLocal ? 'opacity-0' : 'opacity-100'}`} />
-      
-      {!isLocal && (
-        <button
-          onClick={() => onPin(peerId)}
-          className={`absolute top-2 right-2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10
-            ${isPinned ? 'opacity-100 bg-yellow-500 text-black' : 'hover:bg-gray-700'}`}
-          title={isPinned ? 'Unpin User' : 'Pin User'}
-        >
-          <FiZap size={16} />
-        </button>
-      )}
-
       {videoOff && isLocal && (<div className="absolute inset-0 flex items-center justify-center bg-gray-700/80"><FiVideoOff size={36} className="text-gray-300" /></div>)}
       {!isLocal && peer?.destroyed && (<div className="absolute inset-0 flex items-center justify-center bg-gray-700/80"><p className="text-xs text-gray-400">Stream ended</p></div>)}
     </div>
