@@ -9,8 +9,7 @@ import Sidebar from './meeting/Sidebar';
 import ControlBar from './meeting/ControlBar';
 import { Whiteboard } from './meeting/Whiteboard';
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
-
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 export default function Meeting() {
   const { code } = useParams();
   const navigate = useNavigate();
