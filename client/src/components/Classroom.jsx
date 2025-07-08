@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext, useRef, useCallback } from 'rea
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import io from 'socket.io-client';
-import { FiDownload, FiSend, FiPaperclip, FiUsers, FiMessageSquare, FiUploadCloud, FiArrowLeft, FiVideo } from 'react-icons/fi';
+import { FiDownload, FiSend, FiPaperclip, FiUsers, FiMessageSquare, FiUploadCloud, FiArrowLeft, FiVideo, FiShare, FiCopy } from 'react-icons/fi';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
@@ -24,7 +24,8 @@ export default function Classroom() {
   const [uploading, setUploading] = useState(false);
   const [videoMeetingCode, setVideoMeetingCode] = useState('');
   const [success, setSuccess] = useState('');
-  
+  const [copiedIndicator, setCopiedIndicator] = useState('');
+
   const socketRef = useRef(null);
   const chatEndRef = useRef(null);
   
@@ -85,6 +86,22 @@ export default function Classroom() {
   }, [token, code, classroom]);
 
   useEffect(scrollToBottom, [messages]);
+  
+  const handleShare = async () => {
+    if (!classroom || !classroom.code) return;
+    const textToCopy = classroom.code;
+    const successMessage = 'Code Copied!';
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedIndicator(successMessage);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      setCopiedIndicator('Copy failed!');
+    }
+    setTimeout(() => {
+      setCopiedIndicator('');
+    }, 2000);
+  };
 
   const generateVideoCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
   const handleCreateVideoClass = () => navigate(`/meeting/${generateVideoCode()}`);
@@ -145,9 +162,23 @@ export default function Classroom() {
             <button onClick={() => navigate(user.role === 'teacher' ? '/teacher' : '/student')} className="hover:bg-indigo-600 p-2 rounded-full mr-2 sm:mr-3" title="Back to Dashboard">
               <FiArrowLeft size={20} />
             </button>
-            <div>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{classroom.name} <span className="text-sm font-normal hidden sm:inline">({classroom.code})</span></h1>
-              <p className="text-xs sm:text-sm text-indigo-200">Subject: {classroom.subject} | Teacher: {classroom.teacher?.name}</p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{classroom.name} <span className="text-sm font-normal hidden sm:inline">({classroom.code})</span></h1>
+                <p className="text-xs sm:text-sm text-indigo-200">Subject: {classroom.subject} | Teacher: {classroom.teacher?.name}</p>
+              </div>
+              
+              <div className="relative group">
+                <button className="p-2 rounded-full hover:bg-indigo-600 transition-colors" title="Share Classroom Code">
+                  <FiShare size={20} />
+                </button>
+                <div className="absolute left-0 mt-2 w-36 bg-gray-700 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 z-10 invisible group-hover:visible group-focus-within:visible">
+                  <button onClick={handleShare} className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600 rounded-md flex items-center gap-2">
+                    <FiCopy size={14} /> Copy Code
+                  </button>
+                </div>
+              </div>
+              {copiedIndicator && (<span className="ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md animate-pulse">{copiedIndicator}</span>)}
             </div>
           </div>
         </div>
@@ -194,16 +225,7 @@ export default function Classroom() {
             </section>
             
             <div className="mt-4 pt-4 border-t">
-              {activeTab==='upload' && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-700">Upload Material</h3>
-                  <form onSubmit={handleMaterialUpload} className="space-y-3">
-                    <div><label htmlFor="materialNameUpload" className="block text-sm font-medium text-gray-700">Name (Optional)</label><input type="text" id="materialNameUpload" value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="e.g., My Notes Ch.1" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"/></div>
-                    <div><label htmlFor="materialFile" className="block text-sm font-medium text-gray-700">File</label><input type="file" id="materialFile" onChange={handleFileChange} required className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/></div>
-                    <button type="submit" disabled={uploading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50">{uploading?'Uploading...':'Upload'}</button>
-                  </form>
-                </div>
-              )}
+              {activeTab==='upload' && (<div className="space-y-4"><h3 className="text-lg font-semibold text-gray-700">Upload Material</h3><form onSubmit={handleMaterialUpload} className="space-y-3"><div><label htmlFor="materialNameUpload" className="block text-sm font-medium text-gray-700">Name (Optional)</label><input type="text" id="materialNameUpload" value={materialName} onChange={e=>setMaterialName(e.target.value)} placeholder="e.g., My Notes Ch.1" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"/></div><div><label htmlFor="materialFile" className="block text-sm font-medium text-gray-700">File</label><input type="file" id="materialFile" onChange={handleFileChange} required className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/></div><button type="submit" disabled={uploading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-50">{uploading?'Uploading...':'Upload'}</button></form></div>)}
               {activeTab==='participants' && (<div className="space-y-2"><h3 className="text-lg font-semibold text-gray-700 mb-2">Members</h3><ul className="space-y-1 text-sm">{participants.map(p=>(<li key={p._id||p.id} className="p-2 rounded hover:bg-gray-100 flex justify-between items-center"><span>{p.name} <span className="text-xs text-gray-500">({p.role})</span></span>{p._id===classroom.teacher._id && <span className="text-xs text-green-600 ml-1 px-1.5 py-0.5 bg-green-100 rounded-full">(Teacher)</span>}</li>))}</ul></div>)}
               {activeTab==='chat' && (<div className="flex flex-col h-full"><div className="flex-1 overflow-y-auto border p-3 rounded-md mb-3 bg-gray-50 space-y-3">{messages.length === 0 && <p className="text-sm text-gray-400 text-center">No messages. Start chatting!</p>}{messages.map((msg,idx)=>(<div key={msg._id||idx} className={`flex ${msg.sender?._id===user?.id?'justify-end':'justify-start'}`}><div className={`max-w-[75%] p-2 rounded-lg shadow ${msg.sender?._id===user?.id?'bg-indigo-500 text-white':'bg-gray-200 text-gray-800'}`}><p className="text-xs font-semibold mb-0.5">{msg.sender?.name||msg.senderName||'User'}</p><p className="text-sm break-words">{msg.text}</p><p className="text-xs opacity-70 mt-1 text-right">{new Date(msg.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</p></div></div>))}<div ref={chatEndRef}/></div><form onSubmit={handleSendMessage} className="flex sticky bottom-0 bg-white py-2"><input type="text" className="flex-1 border border-gray-300 rounded-l-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Message..." value={inputMsg} onChange={e=>setInputMsg(e.target.value)}/><button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-r-md font-semibold flex items-center"><FiSend size={16} className="mr-0 sm:mr-2"/><span className="hidden sm:inline">Send</span></button></form></div>)}
             </div>
