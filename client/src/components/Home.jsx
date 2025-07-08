@@ -8,7 +8,7 @@ export default function Home() {
       <img
         src="/logo-white.jpg" 
         alt="EduCast Logo"
-        className="w-48 h-48 mb-8 animate-float" 
+        className="w-48 h-48 mb-8 animate-float drop-shadow-lg" 
       />
 
       <h1 className="text-5xl font-bold mb-6 text-center">Welcome to EduCast</h1>
