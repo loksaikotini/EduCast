@@ -6,7 +6,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-600 to-blue-400 text-white p-6 overflow-hidden">
       
       <img
-        src="/logo1.png" 
+        src="/logo2.png" 
         alt="EduCast Logo"
         className="w-48 h-48 mb-8 animate-float drop-shadow-lg" 
       />
