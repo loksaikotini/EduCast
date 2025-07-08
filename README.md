@@ -2,7 +2,7 @@
 
 <div align="center">
  
-  <img src="" alt="EduCast Dashboard Screenshot" width="800"/>
+  <img src="dashboard.png" alt="EduCast Dashboard Screenshot" width="800"/>
 </div>
 
 <br/>
