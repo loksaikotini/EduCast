@@ -9,18 +9,23 @@ export default function Register() {
   const [role, setRole] = useState('student');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // NEW: State for success messages
+  const [success, setSuccess] = useState('');
+
   const navigate = useNavigate();
   const { API_URL } = useContext(AuthContext);
 
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     if (password.length < 6) {
-        setError('Password must be at least 6 characters long.');
-        setLoading(false);
-        return;
+      // REPLACED: alert() with setError()
+      setError('Password must be at least 6 characters long.');
+      setLoading(false);
+      return;
     }
 
     try {
@@ -33,18 +38,23 @@ export default function Register() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || 'Registration failed');
-        setLoading(false);
-        return;
+        throw new Error(data.message || 'Registration failed');
       }
       
-      alert('Registration successful! Please login.');
-      navigate('/login');
+      // REPLACED: alert() with setSuccess() and a delayed navigation
+      setSuccess('Registration successful! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+
     } catch (err) {
       console.error("Register error:", err);
-      setError('Server error or network issue');
+      setError(err.message || 'Server error or network issue');
     } finally {
+      // Don't set loading to false if we are navigating away
+      if (!success) {
         setLoading(false);
+      }
     }
   };
 
@@ -79,44 +89,23 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Form inputs are unchanged */}
           <div>
             <label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</label>
-            <input
-              id="name"
-              type="text"
-              placeholder="John Doe"
-              className="mt-1 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-            />
+            <input id="name" type="text" placeholder="John Doe" className="mt-1 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={name} onChange={e => setName(e.target.value)} required />
           </div>
           <div>
             <label htmlFor="email_register" className="text-sm font-medium text-gray-700">Email</label>
-            <input
-              id="email_register"
-              type="email"
-              placeholder="you@example.com"
-              className="mt-1 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
+            <input id="email_register" type="email" placeholder="you@example.com" className="mt-1 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
           <div>
             <label htmlFor="password_register" className="text-sm font-medium text-gray-700">Password</label>
-            <input
-              id="password_register"
-              type="password"
-              placeholder="Minimum 6 characters"
-              className="mt-1 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
+            <input id="password_register" type="password" placeholder="Minimum 6 characters" className="mt-1 w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
           
+          {/* NEW: Display for success or error messages */}
           {error && <p className="text-red-600 text-sm text-center bg-red-100 p-2 rounded-md">{error}</p>}
+          {success && <p className="text-green-600 text-sm text-center bg-green-100 p-2 rounded-md">{success}</p>}
 
           <button
             type="submit"
