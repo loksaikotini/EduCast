@@ -10,13 +10,11 @@ export default function StudentDashboard() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [joinLoading, setJoinLoading] = useState(false);
-  // NEW: State for success messages
   const [success, setSuccess] = useState('');
 
   const navigate = useNavigate();
   const { user, logout, fetchWithAuth } = useContext(AuthContext);
   
-  // NEW: Helper to show a success message and then clear it
   const showSuccessMessage = (message) => {
     setSuccess(message);
     setTimeout(() => setSuccess(''), 3000);
@@ -42,7 +40,6 @@ export default function StudentDashboard() {
   }, [user, fetchEnrolledClassrooms]);
 
   const handleJoinVideoClass = async () => {
-    // REPLACED: alert() with setError()
     if (!classCode.trim()) return setError('Enter a class code for video meeting');
     setJoinLoading(true);
     setError('');
@@ -63,7 +60,6 @@ export default function StudentDashboard() {
 
   const handleJoinClassroom = async (e) => {
     e.preventDefault();
-    // REPLACED: alert() with setError()
     if (!classroomCodeInput.trim()) return setError('Enter a classroom code to join');
     setError('');
     setJoinLoading(true);
@@ -73,7 +69,6 @@ export default function StudentDashboard() {
       if (!res.ok) throw new Error(data.message || 'Failed to join classroom');
       setClassroomCodeInput('');
       fetchEnrolledClassrooms();
-      // REPLACED: alert() with showSuccessMessage()
       showSuccessMessage(data.message || 'Successfully joined classroom!');
     } catch (err) {
       setError(err.message);
@@ -91,7 +86,6 @@ export default function StudentDashboard() {
       const res = await fetchWithAuth(`/classroom/${classroom_code}/leave`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to leave classroom");
-      // REPLACED: alert() with showSuccessMessage()
       showSuccessMessage(data.message || "Successfully left classroom");
       fetchEnrolledClassrooms();
     } catch (err) {
@@ -113,7 +107,6 @@ export default function StudentDashboard() {
         </button>
       </header>
 
-      {/* NEW: Banners for success or error messages */}
       {error && <p className="bg-red-100 text-red-700 p-3 rounded-md mb-4 text-sm">{error}</p>}
       {success && <p className="bg-green-100 text-green-700 p-3 rounded-md mb-4 text-sm">{success}</p>}
 
