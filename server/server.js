@@ -23,6 +23,9 @@ app.use('/api/classroom', classroomRoutes);
 const meetingRooms = {}; 
 app.use('/api/meetings', meetingRoutes(meetingRooms)); 
 
+app.get('/', (req, res) => {
+  res.send('EduCast Backend is alive!');
+});
 const server = http.createServer(app);
 
 const io = new Server(server, {
