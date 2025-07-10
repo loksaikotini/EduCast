@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import AITutor from './AITutor';
 import { FiLogOut, FiPlusCircle, FiArrowRight, FiTrash2 } from 'react-icons/fi';
 
 export default function StudentDashboard() {
@@ -14,7 +15,7 @@ export default function StudentDashboard() {
 
   const navigate = useNavigate();
   const { user, logout, fetchWithAuth } = useContext(AuthContext);
-  
+
   const showSuccessMessage = (message) => {
     setSuccess(message);
     setTimeout(() => setSuccess(''), 3000);
@@ -108,7 +109,7 @@ export default function StudentDashboard() {
       </header>
 
       {error && <p className="bg-red-100 text-red-700 p-3 rounded-md mb-4 text-sm">{error}</p>}
-      {success && <p className="bg-green-100 text-green-700 p-3 rounded-md mb-4 text-sm">{success}</p>}
+      {success && <p className="bg-green-100 text-green-700 p-3 rounded-md text-sm">{success}</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-6">
@@ -119,7 +120,6 @@ export default function StudentDashboard() {
               {joinLoading ? 'Checking...' : 'Join Live Class'}
             </button>
           </section>
-
           <section className="bg-white/20 backdrop-blur-md p-6 rounded-xl shadow-lg">
             <h2 className="text-xl font-semibold mb-3 text-indigo-100">Join a Classroom</h2>
             <form onSubmit={handleJoinClassroom} className="space-y-3">
@@ -129,8 +129,10 @@ export default function StudentDashboard() {
               </button>
             </form>
           </section>
-        </div>
 
+          <AITutor />
+
+        </div>
         <div className="md:col-span-2 bg-white/10 backdrop-blur-md p-6 rounded-xl shadow-lg">
           <h2 className="text-2xl font-semibold mb-6 text-indigo-100 border-b border-white/20 pb-3">My Enrolled Classrooms</h2>
           {!loading && enrolledClassrooms.length === 0 && (
