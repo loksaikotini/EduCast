@@ -11,7 +11,7 @@ const authRoutes = require('./routes/auth');
 const classroomRoutes = require('./routes/classroom');
 const meetingRoutes = require('./routes/meetings'); 
 const aiRoutes = require('./routes/ai');
-
+const ChatMessage = require('./models/ChatMessage');
 const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL }));
 app.use(express.json());
