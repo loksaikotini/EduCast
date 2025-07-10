@@ -7,14 +7,13 @@ const { Server } = require('socket.io');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 
-const Classroom = require('./models/Classroom');
-const ChatMessage = require('./models/ChatMessage');
 const authRoutes = require('./routes/auth');
 const classroomRoutes = require('./routes/classroom');
 const meetingRoutes = require('./routes/meetings'); 
+const aiRoutes = require('./routes/ai');
 
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
+app.use(cors({ origin: process.env.FRONTEND_URL }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
@@ -22,18 +21,21 @@ app.use('/api/classroom', classroomRoutes);
 
 const meetingRooms = {}; 
 app.use('/api/meetings', meetingRoutes(meetingRooms)); 
+app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.send('EduCast Backend is alive!');
 });
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST'],
   },
 });
+
 
 const socketAuthMiddleware = (socket, next) => {
   const token = socket.handshake.auth.token;
