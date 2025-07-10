@@ -6,7 +6,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const jwt = require('jsonwebtoken');
-
+const Classroom = require('./models/Classroom');
 const authRoutes = require('./routes/auth');
 const classroomRoutes = require('./routes/classroom');
 const meetingRoutes = require('./routes/meetings'); 
