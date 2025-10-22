@@ -6,21 +6,24 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+
 const Classroom = require('./models/Classroom');
+const ChatMessage = require('./models/ChatMessage');
 const authRoutes = require('./routes/auth');
 const classroomRoutes = require('./routes/classroom');
-const meetingRoutes = require('./routes/meetings'); 
+const meetingRoutes = require('./routes/meetings');
 const aiRoutes = require('./routes/ai');
-const ChatMessage = require('./models/ChatMessage');
+
 const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/classroom', classroomRoutes);
 
-const meetingRooms = {}; 
-app.use('/api/meetings', meetingRoutes(meetingRooms)); 
+const meetingRooms = {};
+app.use('/api/meetings', meetingRoutes(meetingRooms));
 app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
@@ -35,7 +38,6 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
   },
 });
-
 
 const socketAuthMiddleware = (socket, next) => {
   const token = socket.handshake.auth.token;
@@ -52,29 +54,21 @@ const socketAuthMiddleware = (socket, next) => {
 };
 
 const videoMeetingNsp = io.of("/video-meeting");
-
 videoMeetingNsp.use(socketAuthMiddleware);
 
 videoMeetingNsp.on('connection', socket => {
-  
   socket.on('join-room', roomID => {
     if (!roomID) return;
-    
     if (!meetingRooms[roomID]) {
       meetingRooms[roomID] = new Map();
     }
-    
     const otherUsersInRoom = [...meetingRooms[roomID].values()];
-    
     const participantData = { id: socket.id, name: socket.user.name };
     meetingRooms[roomID].set(socket.id, participantData);
-    
     socket.join(roomID);
     socket.currentMeetingRoom = roomID;
-
     socket.emit('all-users', otherUsersInRoom);
     socket.to(roomID).emit('user-connected', { userID: socket.id, name: socket.user.name });
-    
   });
 
   socket.on('sending-offer', payload => {
@@ -96,7 +90,7 @@ videoMeetingNsp.on('connection', socket => {
     const handRaiseData = { userId: socket.id, raised: data.raised, name: socket.user.name };
     videoMeetingNsp.to(roomID).emit('user-hand-raised', handRaiseData);
   });
-  
+
   socket.on('drawing-change', ({ roomCode, change }) => {
     socket.to(roomCode).volatile.emit('drawing-update', change);
   });
@@ -104,12 +98,12 @@ videoMeetingNsp.on('connection', socket => {
   const handleLeaveMeetingRoom = (socketInstance) => {
     const roomID = socketInstance.currentMeetingRoom;
     if (roomID && meetingRooms[roomID]) {
-        meetingRooms[roomID].delete(socketInstance.id);
-        socketInstance.leave(roomID);
-        videoMeetingNsp.to(roomID).emit('user-left', socketInstance.id);
-        if (meetingRooms[roomID].size === 0) {
-            delete meetingRooms[roomID];
-        }
+      meetingRooms[roomID].delete(socketInstance.id);
+      socketInstance.leave(roomID);
+      videoMeetingNsp.to(roomID).emit('user-left', socketInstance.id);
+      if (meetingRooms[roomID].size === 0) {
+        delete meetingRooms[roomID];
+      }
     }
     socketInstance.currentMeetingRoom = null;
   };
@@ -122,28 +116,19 @@ videoMeetingNsp.on('connection', socket => {
 
 const classroomChatNsp = io.of("/classroom-chat");
 classroomChatNsp.use(socketAuthMiddleware);
-classroomChatNsp.on('connection', socket => {
 
+classroomChatNsp.on('connection', socket => {
   socket.on('join-classroom-chat', async ({ classroomCode }) => {
     try {
       const classroom = await Classroom.findOne({ code: classroomCode }).select('_id name teacher students');
       if (!classroom) return socket.emit('classroom-error', { message: 'Classroom not found.' });
-
       const isTeacher = classroom.teacher.toString() === socket.user.userId;
       const isStudent = classroom.students.map(s => s.toString()).includes(socket.user.userId);
-
       if (!isTeacher && !isStudent) return socket.emit('classroom-error', { message: 'Not authorized for this classroom chat.' });
-
       const chatRoomId = `classroom_${classroomCode}`;
       socket.join(chatRoomId);
       socket.currentClassroomChat = chatRoomId;
-      
-      socket.emit('joined-classroom-chat', { 
-        classroomCode, 
-        classroomName: classroom.name,
-        message: `Welcome to "${classroom.name}" chat, ${socket.user.name}!`
-      });
-
+      socket.emit('joined-classroom-chat', { classroomCode, classroomName: classroom.name, message: `Welcome to "${classroom.name}" chat, ${socket.user.name}!` });
     } catch (error) {
       console.error("[Classroom Namespace] Error joining chat:", error.message);
       socket.emit('classroom-error', { message: 'Error joining classroom chat.' });
@@ -155,26 +140,12 @@ classroomChatNsp.on('connection', socket => {
       const { userId, name: senderName } = socket.user;
       const classroom = await Classroom.findOne({ code: classroomCode }).select('_id');
       if (!classroom) return socket.emit('classroom-error', { message: 'Classroom not found.' });
-      
       const chatRoomId = `classroom_${classroomCode}`;
       if (!socket.rooms.has(chatRoomId)) return socket.emit('classroom-error', { message: 'Not in chat room.' });
-      if(!messageText || messageText.trim() === "") return socket.emit('classroom-error', { message: 'Message empty.' });
-
-      const newMessage = new ChatMessage({
-        classroom: classroom._id,
-        sender: userId,
-        senderName: senderName,
-        text: messageText.trim(),
-      });
+      if (!messageText || messageText.trim() === "") return socket.emit('classroom-error', { message: 'Message empty.' });
+      const newMessage = new ChatMessage({ classroom: classroom._id, sender: userId, senderName: senderName, text: messageText.trim() });
       await newMessage.save();
-
-      const messageToBroadcast = {
-        _id: newMessage._id,
-        sender: { _id: userId, name: senderName },
-        text: newMessage.text,
-        timestamp: newMessage.timestamp,
-        classroom: classroom._id
-      };
+      const messageToBroadcast = { _id: newMessage._id, sender: { _id: userId, name: senderName }, text: newMessage.text, timestamp: newMessage.timestamp, classroom: classroom._id };
       classroomChatNsp.to(chatRoomId).emit('new-classroom-message', messageToBroadcast);
     } catch (error) {
       console.error("[Classroom Namespace] Error sending message:", error.message);
@@ -182,16 +153,34 @@ classroomChatNsp.on('connection', socket => {
     }
   });
 
-  socket.on('leave-classroom-chat', ({ classroomCode }) => {
-    const chatRoomId = `classroom_${classroomCode}`;
-    if (socket.currentClassroomChat === chatRoomId) {
-        socket.leave(chatRoomId);
-        socket.currentClassroomChat = null;
+  socket.on('meeting-started', async ({ classroomCode, meetingCode }) => {
+    try {
+      const { userId, name: senderName } = socket.user;
+      const classroom = await Classroom.findOne({ code: classroomCode });
+      if (!classroom) return;
+      const isTeacher = classroom.teacher.toString() === userId;
+      if (!isTeacher) {
+        return;
+      }
+      const chatRoomId = `classroom_${classroomCode}`;
+      const messageText = `The teacher has started a new video class! Join with code: ${meetingCode}`;
+      const newMessage = new ChatMessage({ classroom: classroom._id, sender: userId, senderName: senderName, text: messageText });
+      await newMessage.save();
+      const messageToBroadcast = { _id: newMessage._id, sender: { _id: userId, name: senderName }, text: newMessage.text, timestamp: newMessage.timestamp, classroom: classroom._id };
+      classroomChatNsp.to(chatRoomId).emit('new-classroom-message', messageToBroadcast);
+    } catch (error) {
+      console.error("[Classroom Namespace] Error handling meeting-started event:", error.message);
     }
   });
 
+  socket.on('leave-classroom-chat', ({ classroomCode }) => {
+    const chatRoomId = `classroom_${classroomCode}`;
+    if (socket.currentClassroomChat === chatRoomId) {
+      socket.leave(chatRoomId);
+      socket.currentClassroomChat = null;
+    }
+  });
 });
-
 
 const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGO_URI, {
