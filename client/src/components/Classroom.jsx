@@ -104,7 +104,18 @@ export default function Classroom() {
   };
 
   const generateVideoCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
-  const handleCreateVideoClass = () => navigate(`/meeting/${generateVideoCode()}`);
+
+  const handleCreateVideoClass = () => {
+    const newMeetingCode = generateVideoCode();
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('meeting-started', {
+        classroomCode: code,
+        meetingCode: newMeetingCode
+      });
+    }
+    navigate(`/meeting/${newMeetingCode}`);
+  };
+
   const handleJoinVideoClass = () => {
     if (!videoMeetingCode.trim()) return setError('Please enter a class code for the video meeting.');
     navigate(`/meeting/${videoMeetingCode.trim()}`);
